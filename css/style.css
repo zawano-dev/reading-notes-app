@@ -81,9 +81,9 @@ input::placeholder, textarea::placeholder {color: #afb6ad;}
 .book-item:hover {background: #f0f1e9;}
 .book-item.selected {background: #e9f0e9; border-color: #d7e4d8;}
 .book-spine {height: 57px; width: 43px; min-width: 43px; border-radius: 3px 6px 6px 3px; box-shadow: inset 5px 0 rgba(0,0,0,.08), 1px 2px 4px rgba(45,63,49,.1); background: #769287; display: flex; justify-content: center; align-items: center; text-align: center; padding: 4px; color: #fff; font-size: 13px; font-weight: 650; letter-spacing: .08em;}
-.book-item:nth-child(4n + 2) .book-spine {background: #aa8b71;}
-.book-item:nth-child(4n + 3) .book-spine {background: #647f8e;}
-.book-item:nth-child(4n + 4) .book-spine {background: #9a9d77;}
+.book-tree-group:nth-child(4n + 2) .book-spine {background: #aa8b71;}
+.book-tree-group:nth-child(4n + 3) .book-spine {background: #647f8e;}
+.book-tree-group:nth-child(4n + 4) .book-spine {background: #9a9d77;}
 .book-item-text {min-width: 0; flex: 1;}
 .book-item-name {display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 750; font-size: 13px; margin-bottom: 6px;}
 .book-item-meta {display: block; font-size: 11px; color: #859187; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
@@ -218,4 +218,27 @@ input::placeholder, textarea::placeholder {color: #afb6ad;}
   .format-btn {min-height: 42px; padding: 8px 11px;}
   .format-helper {flex-basis: 100%; margin-left: 3px; font-size: 10px;}
   .note-rich-editor {min-height: 190px; max-height: 48vh; font-size: 16px;}
+}
+
+
+/* v3｜可收合的書籍 → 章節／頁碼筆記索引 */
+.book-tree-group {min-width: 0;}
+.book-tree-arrow {flex: 0 0 auto; margin-left: 2px; min-width: 16px; text-align: center; color: #789287; font-size: 21px; line-height: 1;}
+.book-tree-notes {margin: 2px 0 8px 56px; border-left: 1px solid #d7e4d8; padding: 2px 0 3px 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0;}
+.book-tree-note {position: relative; width: 100%; min-width: 0; text-align: left; background: transparent; color: #4d6658; border: 0; border-radius: 6px; padding: 9px 7px 9px 13px; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere;}
+.book-tree-note::before {content: ''; position: absolute; top: 50%; left: -9px; width: 13px; border-top: 1px solid #d7e4d8;}
+.book-tree-note:hover, .book-tree-note:focus-visible {background: #e9f0e9; color: #245845;}
+.book-tree-note:focus-visible, .book-item:focus-visible {outline: 2px solid #719682; outline-offset: 1px;}
+.book-tree-empty {font-size: 11px; color: #9ba99c; padding: 7px 9px; margin: 0;}
+.note-card {scroll-margin-top: 100px;}
+.note-card:focus {outline: none;}
+.note-card.note-card-jump {border-color: #91b49e; box-shadow: 0 0 0 3px rgba(90,139,109,.18), var(--shadow);}
+@media (max-width: 650px) {
+  /* 索引需垂直展開；原本橫向滑動的卡片會遮住子筆記。 */
+  .book-list {flex-direction: column; overflow-x: visible; scroll-snap-type: none; gap: 6px;}
+  .book-item {max-width: none; min-width: 0; width: 100%;}
+  .book-tree-group {width: 100%;}
+  .book-tree-notes {margin-left: 50px; padding-left: 8px;}
+  .book-tree-note {min-height: 39px;}
+  .note-card {scroll-margin-top: 20px;}
 }

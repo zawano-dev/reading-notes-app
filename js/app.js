@@ -14,7 +14,7 @@
   const state = {
     user: null, books: [], notes: [], selectedBookId: null,
     bookEditId: null, noteEditId: null, authMode: 'login',
-    saving: false, loadingId: 0, recoveryMode: false
+    saving: false, loadingId: 0, recoveryMode: false, expandedBookId: undefined
   };
   let client = null;
   let toastTimer = null;
@@ -121,7 +121,7 @@
     const next = session?.user || null;
     if (!next) {
       state.loadingId++;
-      state.user = null; state.books = []; state.notes = []; state.selectedBookId = null;
+      state.user = null; state.books = []; state.notes = []; state.selectedBookId = null; state.expandedBookId = undefined;
       showLogin();
       return;
     }
@@ -129,7 +129,7 @@
     state.user = next;
     showWorkspace();
     if (isDifferent) {
-      state.books = []; state.notes = []; state.selectedBookId = null;
+      state.books = []; state.notes = []; state.selectedBookId = null; state.expandedBookId = undefined;
       render();
       void loadData();
     }
@@ -222,6 +222,10 @@
   function render() {
     if (!currentBook() && state.books.length) state.selectedBookId = state.books[0].id;
     if (!state.books.length) state.selectedBookId = null;
+    if (state.expandedBookId === undefined || (state.expandedBookId !== null
+      && !state.books.some((book) => book.id === state.expandedBookId))) {
+      state.expandedBookId = state.selectedBookId;
+    }
     $('book-total').textContent = String(state.books.length);
     renderBooks(); renderDetail();
   }
@@ -230,6 +234,41 @@
     if (className) node.className = className;
     if (text !== undefined) node.textContent = text;
     return node;
+  }
+  // 書架目錄：每本書可展開筆記清單，以「章節－頁數」作為快速導覽文字。
+  function noteIndexLabel(note) {
+    const chapter = String(note.chapter || '').trim();
+    const page = note.page_number == null || note.page_number === '' ? '' : `第 ${note.page_number} 頁`;
+    return [chapter, page].filter(Boolean).join('－') || '未標示章節／頁數';
+  }
+  function notesForIndex(bookId) {
+    return [...notesFor(bookId)].sort((a, b) => {
+      // 有頁碼時依頁碼排列；無頁碼的草稿筆記排在後面，再按章節名稱排列。
+      const pa = a.page_number == null ? null : Number(a.page_number);
+      const pb = b.page_number == null ? null : Number(b.page_number);
+      if (pa !== null && pb !== null && pa !== pb) return pa - pb;
+      if (pa !== null && pb === null) return -1;
+      if (pa === null && pb !== null) return 1;
+      const chapterOrder = String(a.chapter || '').localeCompare(String(b.chapter || ''), 'zh-Hant', {numeric: true});
+      if (chapterOrder) return chapterOrder;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+  }
+  function jumpToNote(note) {
+    state.selectedBookId = note.book_id;
+    state.expandedBookId = note.book_id;
+    // 清除先前搜尋，否則目標筆記可能被搜尋條件隱藏。
+    $('note-search').value = '';
+    render();
+    const card = document.getElementById(`note-card-${note.id}`);
+    if (!card) return;
+    card.classList.add('note-card-jump');
+    card.focus({preventScroll: true});
+    card.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'center'
+    });
+    setTimeout(() => card.classList.remove('note-card-jump'), 2600);
   }
   function renderBooks() {
     const container = $('book-list');
@@ -243,24 +282,47 @@
       return;
     }
     for (const book of books) {
+      const expanded = state.expandedBookId === book.id;
+      const group = el('div', `book-tree-group${expanded ? ' expanded' : ''}`);
       const btn = el('button', `book-item${state.selectedBookId === book.id ? ' selected' : ''}`);
       btn.type = 'button';
-      btn.setAttribute('aria-pressed', String(state.selectedBookId === book.id));
+      btn.setAttribute('aria-expanded', String(expanded));
+      btn.setAttribute('aria-label', `${expanded ? '收合' : '展開'}《${book.title}》的筆記目錄`);
       const spine = el('span', 'book-spine', Array.from(book.title).slice(0, 2).join(''));
       spine.setAttribute('aria-hidden', 'true');
       const textWrap = el('span', 'book-item-text');
       textWrap.append(el('span', 'book-item-name', book.title));
       textWrap.append(el('span', 'book-item-meta', `${book.author || '未填作者'} · ${notesFor(book.id).length} 則筆記`));
-      btn.append(spine, textWrap);
+      const arrow = el('span', 'book-tree-arrow', expanded ? '⌄' : '›');
+      arrow.setAttribute('aria-hidden', 'true');
+      btn.append(spine, textWrap, arrow);
       btn.addEventListener('click', () => {
         state.selectedBookId = book.id;
+        state.expandedBookId = expanded ? null : book.id;
         $('note-search').value = '';
         render();
-        if (window.matchMedia('(max-width: 650px)').matches) {
-          $('book-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        // 在手機上先留在書架，讓展開的筆記連結可以直接點選。
       });
-      container.append(btn);
+      group.append(btn);
+      if (expanded) {
+        const sublist = el('nav', 'book-tree-notes');
+        sublist.setAttribute('aria-label', `《${book.title}》筆記目錄`);
+        const notes = notesForIndex(book.id);
+        if (!notes.length) {
+          sublist.append(el('p', 'book-tree-empty', '尚無筆記'));
+        } else {
+          for (const note of notes) {
+            const label = noteIndexLabel(note);
+            const link = el('button', 'book-tree-note', label);
+            link.type = 'button';
+            link.title = `前往「${label}」`;
+            link.addEventListener('click', () => jumpToNote(note));
+            sublist.append(link);
+          }
+        }
+        group.append(sublist);
+      }
+      container.append(group);
     }
   }
   function renderDetail() {
@@ -415,6 +477,8 @@
     }
     for (const note of list) {
       const card = el('article', 'note-card');
+      card.id = `note-card-${note.id}`;
+      card.tabIndex = -1;
       const top = el('div', 'note-card-top');
       const tags = el('div', 'note-tags');
       if (note.chapter) tags.append(el('span', 'note-tag', note.chapter));
@@ -483,6 +547,7 @@
           const newBook = {id: makeId(), user_id: 'demo', title, author, created_at: now(), updated_at: now()};
           state.books.push(newBook);
           state.selectedBookId = newBook.id;
+          state.expandedBookId = newBook.id;
         }
         writeDemo();
       } else {
@@ -497,7 +562,7 @@
         }
         if (result.error) throw result.error;
         if (id) state.books = state.books.map((book) => book.id === id ? result.data : book);
-        else { state.books.push(result.data); state.selectedBookId = result.data.id; }
+        else { state.books.push(result.data); state.selectedBookId = result.data.id; state.expandedBookId = result.data.id; }
         setSyncStatus('變更已儲存至雲端');
       }
       $('book-dialog').close();
@@ -584,6 +649,7 @@
       }
       $('note-dialog').close();
       $('note-search').value = '';
+      state.expandedBookId = bookId;
       render(); toast(id ? '筆記已更新。' : '閱讀筆記已儲存。');
     } catch (err) {
       if (mode === 'demo') restoreDemoAfterFailure();
