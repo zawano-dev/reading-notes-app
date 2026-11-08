@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f4ed">
+  <meta name="description" content="頁間：依書名、章節與頁數整理閱讀筆記，支援手機及電腦使用。">
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./css/style.css">
+  <title>頁間｜我的閱讀筆記</title>
+</head>
+<body>
+  <div class="site-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="頁間閱讀筆記">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
+        <span class="brand-wordmark">頁間 <small>READING JOURNAL</small></span>
+      </div>
+      <div id="account-tools" class="account-tools hidden">
+        <span id="account-label" class="account-label"></span>
+        <button type="button" class="toolbar-btn" id="refresh-btn" title="重新取得最新資料">更新</button>
+        <button type="button" class="toolbar-btn" id="export-btn" title="匯出 JSON 備份">匯出備份</button>
+        <button type="button" class="toolbar-btn hidden" id="signout-btn">登出</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="auth-screen" class="auth-screen hidden" aria-label="登入閱讀筆記">
+        <div class="auth-intro">
+          <p class="eyebrow">YOUR PERSONAL READING SPACE</p>
+          <h1>把閱讀時的靈光，<br><em>留在頁間。</em></h1>
+          <p class="lead">記下書名、章節、頁碼，以及讓你想停下來的那段話。從手機到電腦，用同一帳號繼續整理。</p>
+          <div class="feature-chips"><span>書籍分類</span><span>逐頁筆記</span><span>雲端同步</span></div>
+        </div>
+        <div class="auth-card">
+          <p class="card-kicker">歡迎回來</p>
+          <h2 id="auth-title">登入閱讀空間</h2>
+          <p id="auth-subtitle" class="muted">使用電子郵件與密碼登入。</p>
+          <form id="auth-form" class="stack-form">
+            <label for="auth-email">電子郵件</label>
+            <input id="auth-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+            <div id="password-field">
+              <label for="auth-password">密碼</label>
+              <input id="auth-password" name="password" type="password" autocomplete="current-password" placeholder="至少 8 個字元" minlength="8" required>
+            </div>
+            <button type="submit" id="auth-submit" class="primary-btn full-btn">登入</button>
+          </form>
+          <p id="auth-message" class="form-message" role="status" aria-live="polite"></p>
+          <div class="auth-actions">
+            <button type="button" class="link-btn" id="auth-switch">還沒有帳號？建立帳號</button>
+            <button type="button" class="link-btn" id="forgot-password">忘記密碼？</button>
+          </div>
+          <div class="security-note">每個帳號只能讀取、修改自己的筆記。資料儲存在你設定的 Supabase 專案中。</div>
+        </div>
+      </section>
+
+      <section id="workspace" class="workspace hidden" aria-label="閱讀筆記工作區">
+        <div id="demo-banner" class="demo-banner hidden">
+          <span class="demo-dot" aria-hidden="true"></span>
+          <span><strong>單機試用模式</strong>：目前只儲存在這台裝置的瀏覽器，<strong>不會跨裝置同步</strong>。完成設定後才能啟用雲端模式。</span>
+        </div>
+        <div class="workspace-grid">
+          <aside class="shelf-panel" aria-label="我的書架">
+            <div class="section-heading">
+              <div><p class="eyebrow">MY BOOKSHELF</p><h2>我的書架 <span id="book-total" class="heading-count">0</span></h2></div>
+              <button type="button" id="add-book-btn" class="icon-add-btn" aria-label="新增書籍" title="新增書籍">＋</button>
+            </div>
+            <label class="sr-only" for="book-search">搜尋書名或作者</label>
+            <input id="book-search" class="search-input" type="search" placeholder="搜尋書名或作者…" autocomplete="off">
+            <div id="book-list" class="book-list"></div>
+            <div class="aside-footer"><span class="footer-symbol">✦</span> 每一頁，都值得被記得。</div>
+          </aside>
+
+          <section class="detail-panel" aria-label="書籍筆記">
+            <div id="no-book" class="no-book">
+              <div class="empty-illustration" aria-hidden="true"><div class="empty-book"><i></i><i></i></div></div>
+              <p class="eyebrow">NOTES & THOUGHTS</p>
+              <h1>你的閱讀，<br>從這裡開始。</h1>
+              <p>先新增一本書，讓讀到的重點都找到自己的位置。</p>
+              <button type="button" id="empty-add-book" class="primary-btn">＋ 新增第一本書</button>
+            </div>
+            <div id="book-detail" class="hidden">
+              <div class="book-detail-head">
+                <div class="book-detail-info">
+                  <p class="eyebrow">READING NOTES</p>
+                  <h1 id="detail-title"></h1>
+                  <p id="detail-author" class="book-author"></p>
+                  <p id="detail-count" class="detail-count"></p>
+                </div>
+                <div class="detail-actions">
+                  <button type="button" id="edit-book-btn" class="text-btn">編輯書籍</button>
+                  <button type="button" id="delete-book-btn" class="text-btn danger-text">刪除書籍</button>
+                </div>
+              </div>
+              <div class="notes-toolbar">
+                <div class="notes-toolbar-label"><h2>閱讀摘記</h2><p>把值得留住的文字與想法收在這裡。</p></div>
+                <button type="button" id="add-note-btn" class="primary-btn">＋ 新增筆記</button>
+              </div>
+              <label class="sr-only" for="note-search">搜尋筆記</label>
+              <input id="note-search" class="search-input note-search" type="search" placeholder="搜尋章節、頁數或筆記內容…" autocomplete="off">
+              <div id="note-list" class="note-list"></div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer"><span id="sync-status" aria-live="polite"></span><span>頁間 © 2026 · 只為好好讀書</span></footer>
+  </div>
+
+  <dialog id="book-dialog" class="app-dialog" aria-labelledby="book-dialog-title">
+    <form id="book-form" class="modal-form">
+      <div class="dialog-heading"><div><p class="eyebrow">BOOK DETAILS</p><h2 id="book-dialog-title">新增書籍</h2></div><button type="button" class="close-btn" data-close="book-dialog" aria-label="關閉">×</button></div>
+      <label for="book-title-input">書名 <span class="required">＊</span></label>
+      <input id="book-title-input" type="text" maxlength="160" required placeholder="例如：挪威的森林">
+      <label for="book-author-input">作者 <span class="optional">選填</span></label>
+      <input id="book-author-input" type="text" maxlength="120" placeholder="例如：村上春樹">
+      <div class="dialog-bottom"><button type="button" class="secondary-btn" data-close="book-dialog">取消</button><button id="save-book-btn" type="submit" class="primary-btn">儲存書籍</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="note-dialog" class="app-dialog note-dialog" aria-labelledby="note-dialog-title">
+    <form id="note-form" class="modal-form">
+      <div class="dialog-heading"><div><p class="eyebrow">READING NOTE</p><h2 id="note-dialog-title">新增閱讀筆記</h2></div><button type="button" class="close-btn" data-close="note-dialog" aria-label="關閉">×</button></div>
+      <div class="form-row">
+        <div><label for="note-page-input">頁數 <span class="optional">選填</span></label><input id="note-page-input" inputmode="numeric" type="number" min="1" max="9999999" step="1" placeholder="例如：128"></div>
+        <div><label for="note-chapter-input">章節 <span class="optional">選填</span></label><input id="note-chapter-input" type="text" maxlength="180" placeholder="例如：第三章・重逢"></div>
+      </div>
+      <label for="note-content-input">想記錄的內容 <span class="required">＊</span></label>
+      <textarea id="note-content-input" required maxlength="50000" rows="11" placeholder="摘錄讓你停下來的一段話，或記下當下的想法…"></textarea>
+      <p class="field-hint">可使用換行排版；支援長篇筆記（最多 50,000 字）。</p>
+      <div class="dialog-bottom"><button type="button" class="secondary-btn" data-close="note-dialog">取消</button><button id="save-note-btn" type="submit" class="primary-btn">儲存筆記</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="password-dialog" class="app-dialog" aria-labelledby="password-dialog-title">
+    <form id="password-form" class="modal-form">
+      <div class="dialog-heading"><div><p class="eyebrow">ACCOUNT SECURITY</p><h2 id="password-dialog-title">設定新密碼</h2></div></div>
+      <p class="muted">已透過電子郵件完成驗證，請設定新的登入密碼。</p>
+      <label for="new-password">新密碼</label>
+      <input id="new-password" type="password" minlength="8" required autocomplete="new-password" placeholder="至少 8 個字元">
+      <div class="dialog-bottom"><button id="save-password-btn" type="submit" class="primary-btn">更新密碼</button></div>
+    </form>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/app.js" defer></script>
+</body>
+</html>

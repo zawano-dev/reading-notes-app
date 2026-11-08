@@ -1,0 +1,22 @@
+《頁間》閱讀筆記｜快速上線指南
+
+一、先在 GitHub 上架網頁
+1. 解壓縮 reading-notes-app.zip。
+2. GitHub 新建 Public repository，名稱建議 reading-notes-app。
+3. Add file → Upload files，拖入解壓縮後 reading-notes-app「裡面」全部檔案與資料夾，再按 Commit changes。
+4. Settings → Pages → Source: Deploy from a branch → Branch: main → /(root) → Save。
+5. 網址一般是 https://你的GitHub帳號.github.io/reading-notes-app/。
+6. 現在可用「單機試用」測試，尚未跨裝置同步。
+
+二、要跨手機電腦，另外設定 Supabase
+7. 於 supabase.com 建立 Project。
+8. 在 Supabase SQL Editor 貼入 database/schema.sql 全部內容 → Run。
+9. 取得 Project URL 與 Publishable key（或 anon public key），填到 GitHub 專案的 js/config.js，按 Commit changes。
+10. Supabase → Authentication → URL Configuration：將 Site URL、Redirect URLs 都設成第 5 步的完整網址（包含最後的 /）。
+11. 開網站後用電子郵件與密碼註冊／登入；用同一個帳號在手機及電腦登入即可讀取相同資料。
+
+重要提醒
+- 絕對不要將 Supabase service_role、secret key 或資料庫密碼填進公開程式。
+- Supabase 預設測試寄信服務只發給組織成員的信箱，每小時約 2 封；若要其他人使用，需自設 SMTP。第一次測試可先用你建立 Supabase 組織時的信箱註冊。
+- 單機試用資料不會自動搬到雲端。正式記錄前建議先完成雲端設定。
+- 詳細解說、故障排除：請看 README.md。
