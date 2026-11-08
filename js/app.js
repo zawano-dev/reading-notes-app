@@ -9,6 +9,8 @@
     && !String(conf.supabasePublishableKey).includes('請填入');
   const mode = hasConfig ? 'cloud' : 'demo';
   const DEMO_KEY = 'reading-journal-demo-v1';
+  const RICH_PREFIX = 'RJ_RICH_NOTE_V1:';
+  const CONTENT_LIMIT = 50000;
   const state = {
     user: null, books: [], notes: [], selectedBookId: null,
     bookEditId: null, noteEditId: null, authMode: 'login',
@@ -272,6 +274,123 @@
     $('detail-count').textContent = `已收藏 ${count} 則閱讀筆記`;
     renderNotes();
   }
+  // 只保留粗體、底線、換行的安全標記。舊版純文字筆記不經 HTML 解析，原樣顯示。
+  // 格式與文字一併存在 notes.content，不需要改動 Supabase 資料表。
+  function cleanRichNode(node) {
+    const out = document.createDocumentFragment();
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        out.append(document.createTextNode(child.nodeValue || ''));
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        const tag = child.tagName.toLowerCase();
+        if (tag === 'br') {
+          out.append(document.createElement('br'));
+        } else if (tag === 'strong' || tag === 'b' || tag === 'u' || tag === 'div' || tag === 'p') {
+          const safe = document.createElement(tag === 'b' ? 'strong' : tag);
+          safe.append(cleanRichNode(child));
+          out.append(safe);
+        } else {
+          // 除了純文字與允許的標記，所有標籤、事件及屬性都不予儲存。
+          out.append(cleanRichNode(child));
+        }
+      }
+    }
+    return out;
+  }
+  function safeRichFragment(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    return cleanRichNode(template.content);
+  }
+  function notePlainText(content) {
+    const value = escapeString(content);
+    if (!value.startsWith(RICH_PREFIX)) return value;
+    const wrap = document.createElement('div');
+    wrap.append(safeRichFragment(value.slice(RICH_PREFIX.length)));
+    return wrap.textContent || '';
+  }
+  function renderNoteContent(node, stored) {
+    const value = escapeString(stored);
+    if (value.startsWith(RICH_PREFIX)) {
+      node.classList.add('rich');
+      node.replaceChildren(safeRichFragment(value.slice(RICH_PREFIX.length)));
+    } else {
+      node.textContent = value;
+    }
+  }
+  function restoreEditorContent(stored) {
+    const editor = $('note-content-input');
+    const value = escapeString(stored);
+    if (value.startsWith(RICH_PREFIX)) editor.replaceChildren(safeRichFragment(value.slice(RICH_PREFIX.length)));
+    else editor.textContent = value;
+    ['note-bold-btn', 'note-underline-btn'].forEach((id) => $(id).setAttribute('aria-pressed', 'false'));
+  }
+  function editorContent() {
+    const editor = $('note-content-input');
+    const wrap = document.createElement('div');
+    wrap.append(cleanRichNode(editor));
+    const plain = editor.innerText.trim();
+    if (!plain) return {content: '', plain: ''};
+    // 沒有任何文字格式時，維持舊版純文字儲存形式。
+    if (!wrap.querySelector('strong, u')) return {content: plain, plain};
+    return {content: RICH_PREFIX + wrap.innerHTML, plain};
+  }
+  let savedEditorRange = null;
+  function editorHasSelection(range) {
+    const editor = $('note-content-input');
+    if (!range) return false;
+    return editor.contains(range.commonAncestorContainer);
+  }
+  function rememberEditorRange() {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount && editorHasSelection(selection.getRangeAt(0))) {
+      savedEditorRange = selection.getRangeAt(0).cloneRange();
+    }
+  }
+  function restoreEditorRange() {
+    const editor = $('note-content-input');
+    editor.focus({preventScroll: true});
+    if (!savedEditorRange || !editorHasSelection(savedEditorRange)) return;
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(savedEditorRange);
+  }
+  function updateFormatButtons() {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !editorHasSelection(sel.getRangeAt(0))) return;
+    ['bold', 'underline'].forEach((cmd, i) => {
+      const btn = $(i === 0 ? 'note-bold-btn' : 'note-underline-btn');
+      btn.setAttribute('aria-pressed', String(document.queryCommandState(cmd)));
+    });
+  }
+  function applyNoteFormat(command) {
+    restoreEditorRange();
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount || !editorHasSelection(selection.getRangeAt(0))) {
+      toast('請先在筆記內容中選取文字。', true);
+      return;
+    }
+    // execCommand 在 contenteditable 內保留原生的游標、復原與輸入法行為。
+    // 此處只開放 bold / underline，儲存時再次清除非允許的 HTML。
+    const ok = document.execCommand(command, false, null);
+    if (!ok) toast('目前瀏覽器無法套用此格式，請改用其他瀏覽器。', true);
+    rememberEditorRange();
+    updateFormatButtons();
+  }
+  function insertPlainText(text) {
+    // 避免從網頁或 Word 貼上時帶入外部樣式與不安全的 HTML。
+    if (document.execCommand('insertText', false, text)) return;
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    if (!editorHasSelection(range)) return;
+    range.deleteContents();
+    const node = document.createTextNode(text);
+    range.insertNode(node);
+    range.setStartAfter(node); range.collapse(true);
+    sel.removeAllRanges(); sel.addRange(range);
+  }
+
   function renderNotes() {
     const book = currentBook();
     if (!book) return;
@@ -279,7 +398,7 @@
     container.replaceChildren();
     const query = $('note-search').value.trim().toLocaleLowerCase();
     const list = notesFor(book.id).filter((note) => {
-      return (`${note.chapter || ''} ${note.page_number || ''} ${note.content || ''}`).toLocaleLowerCase().includes(query);
+      return (`${note.chapter || ''} ${note.page_number || ''} ${notePlainText(note.content)}`).toLocaleLowerCase().includes(query);
     }).sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
     if (!list.length) {
       const blank = el('div', 'note-empty');
@@ -302,7 +421,8 @@
       if (note.page_number) tags.append(el('span', 'note-tag page', `第 ${note.page_number} 頁`));
       if (!note.chapter && !note.page_number) tags.append(el('span', 'note-tag', '閱讀隨記'));
       top.append(tags, el('span', 'note-date', `更新 ${formatDate(note.updated_at)}`));
-      const content = el('p', 'note-content', note.content);
+      const content = el('div', 'note-content');
+      renderNoteContent(content, note.content);
       const foot = el('div', 'note-card-foot');
       const edit = el('button', '', '編輯');
       edit.type = 'button';
@@ -337,7 +457,8 @@
     $('save-note-btn').textContent = note ? '儲存變更' : '儲存筆記';
     $('note-page-input').value = note?.page_number ?? '';
     $('note-chapter-input').value = note?.chapter || '';
-    $('note-content-input').value = note?.content || '';
+    restoreEditorContent(note?.content || '');
+    savedEditorRange = null;
     openDialog('note-dialog');
   }
   function setSaving(saveButton, saving) {
@@ -419,9 +540,18 @@
     if (page !== null && (!Number.isSafeInteger(page) || page < 1 || page > 9999999)) {
       toast('頁數請輸入 1 到 9,999,999 的整數。', true); return;
     }
-    const content = $('note-content-input').value.trim();
+    const {content, plain} = editorContent();
     const chapter = $('note-chapter-input').value.trim();
-    if (!content) { toast('請先輸入要記錄的內容。', true); return; }
+    if (!plain) {
+      toast('請先輸入要記錄的內容。', true);
+      $('note-content-input').focus();
+      return;
+    }
+    if (plain.length > CONTENT_LIMIT || content.length > CONTENT_LIMIT) {
+      toast('筆記超過 50,000 字限制，請縮短內容後再儲存。', true);
+      $('note-content-input').focus();
+      return;
+    }
     const id = state.noteEditId;
     const bookId = state.selectedBookId;
     setSaving($('save-note-btn'), true);
@@ -535,6 +665,28 @@
     $('add-note-btn').addEventListener('click', () => openNoteDialog());
     $('book-form').addEventListener('submit', saveBook);
     $('note-form').addEventListener('submit', saveNote);
+    const editor = $('note-content-input');
+    editor.addEventListener('keyup', () => { rememberEditorRange(); updateFormatButtons(); });
+    editor.addEventListener('mouseup', () => { rememberEditorRange(); updateFormatButtons(); });
+    editor.addEventListener('touchend', () => setTimeout(() => {rememberEditorRange(); updateFormatButtons();}, 0));
+    editor.addEventListener('paste', (event) => {
+      event.preventDefault();
+      insertPlainText(event.clipboardData?.getData('text/plain') || '');
+      rememberEditorRange();
+    });
+    editor.addEventListener('drop', (event) => {
+      // 不允許拖放 HTML 或檔案直接插入編輯區。
+      event.preventDefault();
+    });
+    document.addEventListener('selectionchange', () => {
+      if (!$('note-dialog').open) return;
+      rememberEditorRange(); updateFormatButtons();
+    });
+    [['note-bold-btn', 'bold'], ['note-underline-btn', 'underline']].forEach(([id, cmd]) => {
+      const button = $(id);
+      button.addEventListener('mousedown', (event) => event.preventDefault());
+      button.addEventListener('click', () => applyNoteFormat(cmd));
+    });
     $('password-form').addEventListener('submit', changePassword);
     $('book-search').addEventListener('input', renderBooks);
     $('note-search').addEventListener('input', renderNotes);
