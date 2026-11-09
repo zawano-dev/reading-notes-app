@@ -69,12 +69,16 @@
     target.replaceChildren(clean(template.content));
   }
   function display(data) {
-    $('book-title').textContent = '《' + (data.book_title || '未命名資料') + '》';
+    const bookTitle = String(data.book_title || '').trim() || '未命名資料';
+    document.title = '閱讀摘記｜' + bookTitle;
+    $('book-title').textContent = '《' + bookTitle + '》';
+    const chapter = String(data.chapter || '').trim();
+    $('note-chapter').hidden = !chapter;
+    $('note-chapter').textContent = chapter ? '章節｜' + chapter : '';
+    $('book-author').hidden = !String(data.book_author || '').trim();
     $('book-author').textContent = data.book_author ? '作者｜' + data.book_author : '';
-    $('note-title').textContent = (data.chapter || '').trim() || '閱讀摘記';
-    if (data.chapter) addMeta(data.chapter);
+    $('metadata').replaceChildren();
     if (data.page_number != null) addMeta('第 ' + data.page_number + ' 頁');
-    if (!data.chapter && data.page_number == null) addMeta('閱讀隨記');
     renderContent(data.content);
     $('loading').hidden = true;
     $('reading').hidden = false;

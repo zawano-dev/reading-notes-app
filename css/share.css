@@ -10,9 +10,10 @@ a{color:var(--green);text-underline-offset:4px;}
 .readonly{border-radius:100px;border:1px solid #d7e4da;background:#eef4ef;color:#4c7162;font-size:11px;padding:8px 12px;font-weight:700;white-space:nowrap;}
 .sheet{width:min(760px,100%);margin:56px auto 0;background:var(--paper);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);padding:clamp(28px,5.9vw,63px) clamp(24px,7vw,74px);}
 .eyebrow{font-size:10px;letter-spacing:.24em;color:var(--gold);font-weight:800;margin:0 0 17px;}
-.book{font-size:12px;line-height:1.8;color:#6d8477;font-weight:700;margin:0 0 8px;overflow-wrap:anywhere;}
-.book-author{font-size:12px;color:#748477;margin:0 0 13px;}
-h1{font-family:Georgia,"Noto Serif TC",serif;font-size:clamp(25px,3.8vw,35px);font-weight:700;letter-spacing:.02em;line-height:1.6;margin:0 0 20px;overflow-wrap:anywhere;}
+.book{font-family:Georgia,"Noto Serif TC",serif;font-size:clamp(29px,4.1vw,39px);font-weight:700;letter-spacing:.018em;line-height:1.55;color:var(--ink);margin:0 0 18px;overflow-wrap:anywhere;}
+.note-chapter{font-size:13px;line-height:1.85;color:#597467;font-weight:600;margin:0 0 8px;overflow-wrap:anywhere;}
+.book-author{font-size:12px;line-height:1.85;color:#748477;margin:0 0 13px;overflow-wrap:anywhere;}
+h1{font-family:Georgia,"Noto Serif TC",serif;letter-spacing:.02em;line-height:1.6;overflow-wrap:anywhere;}
 .meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;color:#748477;font-size:12px;}.meta span{background:#f4f5ef;padding:7px 12px;border-radius:6px;overflow-wrap:anywhere;}
 .fine-line{height:1px;background:var(--line);margin:32px 0 34px;}
 .note{font-size:15px;line-height:2.2;letter-spacing:.015em;white-space:pre-wrap;overflow-wrap:anywhere;}
@@ -26,5 +27,5 @@ footer{text-align:center;color:#a6aea6;font-size:11px;padding:12px 20px 38px;}
 .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,14px);opacity:0;pointer-events:none;z-index:30;background:var(--ink);color:#fff;padding:12px 17px;border-radius:9px;box-shadow:0 8px 25px #0002;font-size:13px;transition:opacity .18s,transform .18s;text-align:center;max-width:calc(100vw - 30px);}.toast.visible{opacity:1;transform:translate(-50%,0);}
 /* 限制範圍只包含公開卡片：私人編輯頁不載入此 CSS。 */
 #reading,#reading *{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
-@media(max-width:560px){.frame{padding:0 14px 40px;}.page-head{padding:24px 3px 21px;}.sheet{margin-top:24px;}h1{font-size:25px;}.note{font-size:14px;}.fine-line{margin:27px 0;}.readonly{font-size:10px;}.meta{gap:6px;}}
+@media(max-width:560px){.frame{padding:0 14px 40px;}.page-head{padding:24px 3px 21px;}.sheet{margin-top:24px;}.book{font-size:27px;margin-bottom:14px;}.note{font-size:14px;}.fine-line{margin:27px 0;}.readonly{font-size:10px;}.meta{gap:6px;}}
 @media(prefers-reduced-motion:reduce){.toast{transition:none;}}

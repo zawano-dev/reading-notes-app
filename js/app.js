@@ -173,17 +173,15 @@
     $('auth-message').classList.toggle('error', isError);
   }
   function updateAuthForm() {
-    const signup = state.authMode === 'signup';
     const reset = state.authMode === 'reset';
-    $('auth-title').textContent = signup ? '建立閱讀帳號' : reset ? '重設登入密碼' : '登入閱讀空間';
-    $('auth-subtitle').textContent = signup ? '建立帳號後，你的筆記便能跨裝置同步。'
-      : reset ? '我們會寄送重設密碼連結到你的信箱。' : '使用電子郵件與密碼登入。';
-    $('auth-submit').textContent = signup ? '建立帳號' : reset ? '寄送重設密碼信' : '登入';
+    $('auth-title').textContent = reset ? '重設登入密碼' : '登入閱讀空間';
+    $('auth-subtitle').textContent = reset ? '我們會寄送重設密碼連結到你的信箱。' : '使用電子郵件與密碼登入。';
+    $('auth-submit').textContent = reset ? '寄送重設密碼信' : '登入';
     $('password-field').classList.toggle('hidden', reset);
     $('auth-password').required = !reset;
-    $('auth-password').autocomplete = signup ? 'new-password' : 'current-password';
-    $('auth-switch').textContent = signup || reset ? '返回登入' : '還沒有帳號？建立帳號';
-    $('forgot-password').classList.toggle('hidden', reset || signup);
+    $('auth-password').autocomplete = 'current-password';
+    $('auth-switch').textContent = reset ? '返回登入' : '還沒有帳號？註冊帳號';
+    $('forgot-password').classList.toggle('hidden', reset);
     setAuthMessage('');
   }
   async function handleAuth(event) {
@@ -198,13 +196,6 @@
         const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl() });
         if (error) throw error;
         setAuthMessage('若此信箱已註冊，將收到重設密碼信。請檢查收件匣及垃圾郵件。');
-      } else if (state.authMode === 'signup') {
-        const { data, error } = await client.auth.signUp({
-          email, password, options: { emailRedirectTo: redirectUrl() }
-        });
-        if (error) throw error;
-        if (!data.session) setAuthMessage('註冊申請已送出。請查看信箱中的驗證信；驗證完成後再登入。');
-        else { setAuthMessage('帳號已建立。'); toast('歡迎開始你的閱讀記錄！'); }
       } else {
         const { error } = await client.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -946,8 +937,13 @@
   function registerEvents() {
     $('auth-form').addEventListener('submit', handleAuth);
     $('auth-switch').addEventListener('click', () => {
-      state.authMode = state.authMode === 'login' ? 'signup' : 'login';
-      updateAuthForm();
+      if (state.authMode === 'reset') {
+        state.authMode = 'login';
+        updateAuthForm();
+      } else {
+        // 僅顯示公告，不呼叫 signUp，也不打開註冊表單。
+        setAuthMessage('目前不開放申請新帳號。', true);
+      }
     });
     $('forgot-password').addEventListener('click', () => {
       state.authMode = 'reset'; updateAuthForm();

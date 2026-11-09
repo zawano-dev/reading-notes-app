@@ -1,0 +1,17 @@
+《頁間》v5.1｜公開頁排版、註冊入口調整
+
+【本次變更】
+1. 公開閱讀頁：大字書名 → 小字章節 → 小字作者；頁數保留為小標籤。
+2. 瀏覽器分頁標題：閱讀摘記｜書名（公開筆記載入成功後才更新）。
+3. 私人站登入頁仍顯示「還沒有帳號？註冊帳號」，點擊只顯示「目前不開放申請新帳號。」；沒有註冊表單，也不呼叫 Supabase signUp。
+4. 原有登入、忘記密碼、書籍筆記、雲端同步和單篇分享功能不變。
+
+【非常重要：需另在 Supabase 後台關閉新帳號註冊】
+網站只能關閉介面上的註冊流程。任何人仍可能直接呼叫公開的 Auth API。
+請到 Supabase Dashboard → reading-notes → Authentication → Sign In / Providers，將「Allow new users to sign up」關閉並儲存。
+此設定禁止公開註冊，原有帳號仍能登入；不要把 Email 登入提供者整個關掉。
+這次不需要重新執行 schema.sql 或 share_v5.sql。
+
+【GitHub 更新】
+把更新包解壓縮後的 index.html、share.html、css/share.css、js/share.js、js/app.js 上傳 GitHub 儲存庫相同位置，按 Commit changes。
+此更新包未包含 js/config.js，因此原有 Supabase 連線設定保持不變。
