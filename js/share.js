@@ -115,5 +115,25 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => tip.classList.remove('visible'), 2200);
   });
+  // 公開頁內容較長時才顯示；不影響卡片限制選字、右鍵或外部連結。
+  const backToTop = $('back-to-top');
+  function updateBackToTop() {
+    const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+    const enoughContent = document.documentElement.scrollHeight > window.innerHeight + 160;
+    const show = enoughContent && scrollTop > 320;
+    backToTop.classList.toggle('visible', show);
+    backToTop.setAttribute('aria-hidden', show ? 'false' : 'true');
+    backToTop.tabIndex = show ? 0 : -1;
+  }
+  backToTop.addEventListener('click', () => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({top: 0, behavior: reduceMotion ? 'auto' : 'smooth'});
+  });
+  window.addEventListener('scroll', updateBackToTop, {passive:true});
+  window.addEventListener('resize', updateBackToTop, {passive:true});
+  // 非同步讀取筆記後版面才變長，載入完成時同步檢查按鈕狀態。
+  const viewObserver = new MutationObserver(updateBackToTop);
+  viewObserver.observe($('reading'), {attributes:true,attributeFilter:['hidden']});
+  updateBackToTop();
   void start();
 })();

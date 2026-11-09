@@ -1025,8 +1025,37 @@
         && !$('book-dialog').open && !$('note-dialog').open) void loadData({quiet:true});
     });
   }
+  // 僅私人筆記工作區使用：當長頁面往下捲超過 320px，顯示右下角回頂端按鈕。
+  function setupBackToTop() {
+    const button = $('back-to-top');
+    if (!button) return;
+    function update() {
+      const inWorkspace = !$('workspace').classList.contains('hidden');
+      const modalOpen = !!document.querySelector('dialog[open]');
+      const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+      const longPage = document.documentElement.scrollHeight > window.innerHeight + 160;
+      const show = inWorkspace && !modalOpen && longPage && scrollTop > 320;
+      button.classList.toggle('visible', show);
+      button.setAttribute('aria-hidden', show ? 'false' : 'true');
+      button.tabIndex = show ? 0 : -1;
+    }
+    button.addEventListener('click', () => {
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({top: 0, behavior: reduceMotion ? 'auto' : 'smooth'});
+    });
+    window.addEventListener('scroll', update, {passive:true});
+    window.addEventListener('resize', update, {passive:true});
+    const observer = new MutationObserver(update);
+    observer.observe($('workspace'), {attributes:true, attributeFilter:['class']});
+    observer.observe($('note-list'), {childList:true});
+    document.querySelectorAll('dialog').forEach(dialog => {
+      dialog.addEventListener('close', update);
+    });
+    update();
+  }
   function init() {
     registerEvents();
+    setupBackToTop();
     if (mode === 'demo') {
       showWorkspace();
       loadData();

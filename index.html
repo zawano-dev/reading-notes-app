@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f7f4ed">
   <meta name="description" content="頁間：依書名、章節與頁數整理閱讀筆記，支援手機及電腦使用。">
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./css/style.css?v=5.1-20261109">
+  <link rel="stylesheet" href="./css/style.css?v=5.2.1-20261109">
   <title>頁間｜我的閱讀筆記</title>
 </head>
 <body>
@@ -180,9 +180,15 @@
       <div class="dialog-bottom"><button id="save-password-btn" type="submit" class="primary-btn">更新密碼</button></div>
     </form>
   </dialog>
+  <!-- 私人筆記工作區：長頁面浮動回頂端（不影響公開分享頁） -->
+  <button type="button" id="back-to-top" class="back-to-top" title="回到頂端"
+    aria-label="回到頁面頂端" aria-hidden="true" tabindex="-1">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 6-6 6 6"/><path d="M12 8v12"/></svg>
+    <span>頂端</span>
+  </button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="./js/config.js?v=5.1-20261109"></script>
-  <script src="./js/app.js?v=5.1-20261109" defer></script>
+  <script src="./js/app.js?v=5.2.1-20261109" defer></script>
 </body>
 </html>
