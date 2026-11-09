@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f7f4ed">
   <meta name="description" content="頁間：依書名、章節與頁數整理閱讀筆記，支援手機及電腦使用。">
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./css/style.css?v=3">
+  <link rel="stylesheet" href="./css/style.css?v=4-20261109">
   <title>頁間｜我的閱讀筆記</title>
 </head>
 <body>
@@ -130,11 +130,24 @@
         <div class="note-format-toolbar" role="toolbar" aria-label="文字格式">
           <button type="button" id="note-bold-btn" class="format-btn" aria-label="粗體" title="粗體（Ctrl / ⌘ + B）" aria-pressed="false"><strong>B</strong><span>粗體</span></button>
           <button type="button" id="note-underline-btn" class="format-btn" aria-label="底線" title="底線（Ctrl / ⌘ + U）" aria-pressed="false"><u>U</u><span>底線</span></button>
+          <button type="button" id="note-link-btn" class="format-btn" aria-label="插入連結" title="插入連結（Ctrl / ⌘ + K）"><span aria-hidden="true" class="link-symbol">↗</span><span>連結</span></button>
           <span class="format-helper">選取文字後點選格式</span>
+        </div>
+        <div id="note-link-panel" class="note-link-panel hidden" role="group" aria-label="設定外部連結">
+          <p class="note-link-title">插入外部連結</p>
+          <label for="note-link-text">顯示文字</label>
+          <input id="note-link-text" type="text" maxlength="2000" placeholder="例如：這篇文章的原文">
+          <label for="note-link-url">連結網址</label>
+          <input id="note-link-url" type="text" inputmode="url" maxlength="2048" placeholder="https://example.com/article" autocomplete="url">
+          <div class="note-link-actions">
+            <button type="button" id="note-link-remove" class="secondary-btn hidden">移除連結</button>
+            <button type="button" id="note-link-cancel" class="secondary-btn">取消</button>
+            <button type="button" id="note-link-confirm" class="primary-btn">插入連結</button>
+          </div>
         </div>
         <div id="note-content-input" class="note-rich-editor" contenteditable="true" role="textbox" aria-labelledby="note-content-label" aria-multiline="true" data-placeholder="摘錄讓你停下來的一段話，或記下當下的想法…" spellcheck="true"></div>
       </div>
-      <p class="field-hint">選取文字可套用粗體或底線；保留換行。最多 50,000 字（含格式資料）。</p>
+      <p class="field-hint">選取文字可加粗體、底線或連結；也可直接插入網路文章網址。連結會在新分頁開啟。最多 50,000 字（含格式資料）。</p>
       <div class="dialog-bottom"><button type="button" class="secondary-btn" data-close="note-dialog">取消</button><button id="save-note-btn" type="submit" class="primary-btn">儲存筆記</button></div>
     </form>
   </dialog>
@@ -150,7 +163,7 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="./js/config.js"></script>
-  <script src="./js/app.js?v=3" defer></script>
+  <script src="./js/config.js?v=4-20261109"></script>
+  <script src="./js/app.js?v=4-20261109" defer></script>
 </body>
 </html>

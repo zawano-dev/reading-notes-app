@@ -11,6 +11,7 @@
   const DEMO_KEY = 'reading-journal-demo-v1';
   const RICH_PREFIX = 'RJ_RICH_NOTE_V1:';
   const CONTENT_LIMIT = 50000;
+  const LINK_LIMIT = 2048;
   const state = {
     user: null, books: [], notes: [], selectedBookId: null,
     bookEditId: null, noteEditId: null, authMode: 'login',
@@ -336,8 +337,31 @@
     $('detail-count').textContent = `已收藏 ${count} 則閱讀筆記`;
     renderNotes();
   }
-  // 只保留粗體、底線、換行的安全標記。舊版純文字筆記不經 HTML 解析，原樣顯示。
+  // 僅保留粗體、底線、換行與安全的 https/http 連結；舊筆記仍以純文字顯示。
   // 格式與文字一併存在 notes.content，不需要改動 Supabase 資料表。
+  function safeLinkUrl(raw) {
+    const href = String(raw || '').trim();
+    if (!href || href.length > LINK_LIMIT || !/^https?:\/\//i.test(href)) return null;
+    try {
+      const url = new URL(href);
+      if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname || url.username || url.password) return null;
+      return url.href;
+    } catch { return null; }
+  }
+  function inputLinkUrl(raw) {
+    let url = String(raw || '').trim();
+    if (!url || url.length > LINK_LIMIT) return null;
+    // 沒輸入 http(s) 時，將 example.com 和 www.example.com 視為 HTTPS。
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) url = 'https://' + url;
+    return safeLinkUrl(url);
+  }
+  function configureLink(anchor, href) {
+    anchor.href = href;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    anchor.referrerPolicy = 'no-referrer';
+    return anchor;
+  }
   function cleanRichNode(node) {
     const out = document.createDocumentFragment();
     for (const child of Array.from(node.childNodes)) {
@@ -347,6 +371,16 @@
         const tag = child.tagName.toLowerCase();
         if (tag === 'br') {
           out.append(document.createElement('br'));
+        } else if (tag === 'a') {
+          const safeHref = safeLinkUrl(child.getAttribute('href'));
+          if (safeHref) {
+            const link = configureLink(document.createElement('a'), safeHref);
+            link.append(cleanRichNode(child));
+            out.append(link);
+          } else {
+            // 不合法連結仍保留可閱讀的文字，不保留危險的網址或屬性。
+            out.append(cleanRichNode(child));
+          }
         } else if (tag === 'strong' || tag === 'b' || tag === 'u' || tag === 'div' || tag === 'p') {
           const safe = document.createElement(tag === 'b' ? 'strong' : tag);
           safe.append(cleanRichNode(child));
@@ -385,6 +419,7 @@
     const value = escapeString(stored);
     if (value.startsWith(RICH_PREFIX)) editor.replaceChildren(safeRichFragment(value.slice(RICH_PREFIX.length)));
     else editor.textContent = value;
+    closeLinkPanel();
     ['note-bold-btn', 'note-underline-btn'].forEach((id) => $(id).setAttribute('aria-pressed', 'false'));
   }
   function editorContent() {
@@ -394,10 +429,11 @@
     const plain = editor.innerText.trim();
     if (!plain) return {content: '', plain: ''};
     // 沒有任何文字格式時，維持舊版純文字儲存形式。
-    if (!wrap.querySelector('strong, u')) return {content: plain, plain};
+    if (!wrap.querySelector('strong, u, a[href]')) return {content: plain, plain};
     return {content: RICH_PREFIX + wrap.innerHTML, plain};
   }
   let savedEditorRange = null;
+  let editingLink = null;
   function editorHasSelection(range) {
     const editor = $('note-content-input');
     if (!range) return false;
@@ -438,6 +474,105 @@
     if (!ok) toast('目前瀏覽器無法套用此格式，請改用其他瀏覽器。', true);
     rememberEditorRange();
     updateFormatButtons();
+  }
+  function linkAtNode(node) {
+    const editor = $('note-content-input');
+    let element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+    while (element && element !== editor) {
+      if (element.tagName?.toLowerCase() === 'a') return element;
+      element = element.parentElement;
+    }
+    return null;
+  }
+  function editorRange() {
+    if (savedEditorRange && editorHasSelection(savedEditorRange)) return savedEditorRange;
+    const selection = window.getSelection();
+    return selection?.rangeCount && editorHasSelection(selection.getRangeAt(0)) ? selection.getRangeAt(0).cloneRange() : null;
+  }
+  function closeLinkPanel({focusEditor = false} = {}) {
+    $('note-link-panel').classList.add('hidden');
+    editingLink = null;
+    if (focusEditor) restoreEditorRange();
+  }
+  function openLinkPanel() {
+    const range = editorRange();
+    editingLink = range ? (linkAtNode(range.startContainer) || linkAtNode(range.commonAncestorContainer)) : null;
+    const selected = range && !range.collapsed ? range.toString().trim() : '';
+    $('note-link-text').value = editingLink ? editingLink.textContent || '' : selected;
+    $('note-link-url').value = editingLink ? editingLink.getAttribute('href') || '' : '';
+    $('note-link-remove').classList.toggle('hidden', !editingLink);
+    $('note-link-confirm').textContent = editingLink ? '更新連結' : '插入連結';
+    $('note-link-panel').classList.remove('hidden');
+    $('note-link-url').focus();
+  }
+  function caretAfter(node) {
+    const range = document.createRange();
+    range.setStartAfter(node);
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    savedEditorRange = range.cloneRange();
+  }
+  function insertNewLink(href, label, selectionRange) {
+    const a = configureLink(document.createElement('a'), href);
+    a.textContent = label;
+    const editor = $('note-content-input');
+    if (!selectionRange || !editorHasSelection(selectionRange)) {
+      // 第一次編輯且未曾設定游標時，在筆記最後插入。
+      const prefix = editor.textContent && !/\s$/.test(editor.textContent) ? document.createTextNode(' ') : null;
+      if (prefix) editor.append(prefix);
+      editor.append(a);
+    } else {
+      // 若顯示文字未修改，保留原先選取內容的粗體與底線。
+      const keepFormatting = !selectionRange.collapsed && selectionRange.toString() === label;
+      const fragment = keepFormatting ? selectionRange.cloneContents() : null;
+      if (keepFormatting && !fragment.querySelector('div, p, a')) {
+        a.replaceChildren(selectionRange.extractContents());
+      } else {
+        selectionRange.deleteContents();
+      }
+      selectionRange.insertNode(a);
+    }
+    caretAfter(a);
+  }
+  function saveLinkFromPanel() {
+    const href = inputLinkUrl($('note-link-url').value);
+    if (!href) {
+      toast('請輸入有效的 http:// 或 https:// 網址。', true);
+      $('note-link-url').focus();
+      return;
+    }
+    const selectionRange = editorRange();
+    const selected = selectionRange && !selectionRange.collapsed ? selectionRange.toString().trim() : '';
+    const text = $('note-link-text').value.trim() || selected || href;
+    if (text.length > 2000) {
+      toast('連結顯示文字太長，請縮短後再試。', true);
+      return;
+    }
+    if (editingLink && $('note-content-input').contains(editingLink)) {
+      configureLink(editingLink, href);
+      if (editingLink.textContent !== text) editingLink.textContent = text;
+      caretAfter(editingLink);
+    } else {
+      insertNewLink(href, text, selectionRange);
+    }
+    closeLinkPanel();
+    $('note-content-input').focus({preventScroll: true});
+    rememberEditorRange();
+    toast('已插入連結，儲存筆記後即可點選開啟。');
+  }
+  function removeCurrentLink() {
+    if (editingLink && $('note-content-input').contains(editingLink)) {
+      const parent = editingLink.parentNode;
+      const last = editingLink.lastChild;
+      while (editingLink.firstChild) parent.insertBefore(editingLink.firstChild, editingLink);
+      parent.removeChild(editingLink);
+      if (last?.isConnected) caretAfter(last);
+    }
+    closeLinkPanel();
+    $('note-content-input').focus({preventScroll: true});
+    rememberEditorRange();
   }
   function insertPlainText(text) {
     // 避免從網頁或 Word 貼上時帶入外部樣式與不安全的 HTML。
@@ -600,6 +735,10 @@
   async function saveNote(event) {
     event.preventDefault();
     if (state.saving || !currentBook()) return;
+    if (!$('note-link-panel').classList.contains('hidden')) {
+      toast('請先按「插入連結」或「取消」，再儲存筆記。', true);
+      return;
+    }
     const pageRaw = $('note-page-input').value.trim();
     const page = pageRaw ? Number(pageRaw) : null;
     if (page !== null && (!Number.isSafeInteger(page) || page < 1 || page > 9999999)) {
@@ -733,6 +872,15 @@
     $('note-form').addEventListener('submit', saveNote);
     const editor = $('note-content-input');
     editor.addEventListener('keyup', () => { rememberEditorRange(); updateFormatButtons(); });
+    editor.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault(); rememberEditorRange(); openLinkPanel();
+      }
+    });
+    editor.addEventListener('click', (event) => {
+      // 編輯連結時不跳離網站；只有在已儲存的筆記卡片中才可點擊外連。
+      if (event.target.closest('a')) event.preventDefault();
+    });
     editor.addEventListener('mouseup', () => { rememberEditorRange(); updateFormatButtons(); });
     editor.addEventListener('touchend', () => setTimeout(() => {rememberEditorRange(); updateFormatButtons();}, 0));
     editor.addEventListener('paste', (event) => {
@@ -753,6 +901,15 @@
       button.addEventListener('mousedown', (event) => event.preventDefault());
       button.addEventListener('click', () => applyNoteFormat(cmd));
     });
+    $('note-link-btn').addEventListener('mousedown', (event) => event.preventDefault());
+    $('note-link-btn').addEventListener('click', openLinkPanel);
+    $('note-link-confirm').addEventListener('click', saveLinkFromPanel);
+    $('note-link-cancel').addEventListener('click', () => closeLinkPanel({focusEditor:true}));
+    $('note-link-remove').addEventListener('click', removeCurrentLink);
+    ['note-link-url', 'note-link-text'].forEach((id) => $(id).addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {event.preventDefault(); saveLinkFromPanel();}
+      if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); closeLinkPanel({focusEditor:true});}
+    }));
     $('password-form').addEventListener('submit', changePassword);
     $('book-search').addEventListener('input', renderBooks);
     $('note-search').addEventListener('input', renderNotes);

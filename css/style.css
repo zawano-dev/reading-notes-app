@@ -242,3 +242,23 @@ input::placeholder, textarea::placeholder {color: #afb6ad;}
   .book-tree-note {min-height: 39px;}
   .note-card {scroll-margin-top: 20px;}
 }
+
+/* v4｜筆記連結：貼入網址或將選取文字設為可點擊的外部連結。 */
+.note-link-panel {padding: 13px 15px 15px; background: #f4f8f3; border-bottom: 1px solid #dce7dd;}
+.note-link-panel .note-link-title {margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #42634e;}
+.note-link-panel label {display: block; margin: 7px 0 4px; font-size: 11px; color: #5a715e; font-weight: 650;}
+.note-link-panel input {width: 100%; min-height: 39px; font-size: 13px; padding: 9px 11px; border: 1px solid #d3dfd5; border-radius: 6px; background: #fff;}
+.note-link-panel input:focus {border-color: #799b87; outline: 2px solid rgba(88,131,114,.18);}
+.note-link-actions {display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 12px;}
+.note-link-actions button {min-height: 35px; font-size: 12px; padding: 7px 11px;}
+.note-link-actions #note-link-remove {margin-right: auto; color: #975e53;}
+.format-btn .link-symbol {font-size: 17px; line-height: 1; font-weight: 700;}
+.note-rich-editor a, .note-content a {color: #176b86; text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere;}
+.note-rich-editor a {cursor: text;}
+.note-content a:hover {color: #0f5067; text-decoration-thickness: 2px;}
+.note-content a:focus-visible {outline: 2px solid #176b86; outline-offset: 2px; border-radius: 2px;}
+@media (max-width: 650px) {
+  .note-link-panel {padding: 12px 10px 13px;}
+  .note-link-panel input {font-size: 16px;}
+  .note-link-actions button {min-height: 42px;}
+}
