@@ -71,7 +71,7 @@
   function display(data) {
     const bookTitle = String(data.book_title || '').trim() || '未命名資料';
     document.title = '閱讀摘記｜' + bookTitle;
-    $('book-title').textContent = '《' + bookTitle + '》';
+    $('book-title').textContent = bookTitle;
     const chapter = String(data.chapter || '').trim();
     $('note-chapter').hidden = !chapter;
     $('note-chapter').textContent = chapter ? '章節｜' + chapter : '';
