@@ -1,0 +1,42 @@
+《頁間》v5｜單篇筆記公開分享：安裝說明
+==================================
+
+這次必須完成兩件事：先在 Supabase 設定分享權限，再將網站更新檔上傳 GitHub。
+僅上傳網站、未執行 SQL 的話，「分享」按鈕會無法建立連結。
+
+步驟 1：備份目前的個人筆記
+  開啟你的《頁間》 → 匯出備份，妥善保存 JSON 檔。
+
+步驟 2：Supabase 執行一次 SQL
+  進入 https://supabase.com/dashboard/project/ppasipmdzlugoplxilbr/sql/new
+  開啟更新包內 database/share_v5.sql，複製「整份」內容貼入 SQL Editor，按 Run。
+  這份程式只建立新的 note_shares 分享快照表與 4 個權限函式。
+  不會刪除或重建原本 books、notes 兩張資料表。
+  執行成功後可以再次執行（可重複執行）。
+
+步驟 3：GitHub 更新網站
+  進入 https://github.com/zawano-dev/reading-notes-app/upload/main
+  將 ZIP 解壓縮，把更新包中的檔案和子資料夾內容上傳到儲存庫根目錄。
+  確認 index.html 位於根目錄，css/*、js/*、database/* 位於對應資料夾。
+  按 Commit changes，並確認提交。
+  這次更新包只有需要更新的網站檔及分享 SQL，沒有 js/config.js。
+
+步驟 4：使用方式
+  進入 https://zawano-dev.github.io/reading-notes-app/
+  登入後，打開任一本書中的某則筆記 → 按「分享」。
+  按「建立分享連結」→「複製連結」，傳給想分享的人。
+  也可以「預覽公開頁」。
+  修改原筆記後若想同步公開內容，回到同一則 → 分享 → 更新分享內容。
+  不想分享了，按「取消分享」，原連結立即失效。
+
+公開網址形式：
+  https://zawano-dev.github.io/reading-notes-app/share.html?token=隨機UUID
+  這是獨立閱讀頁，但仍使用 GitHub Pages 同一個網站的網域。
+  知道主網站網址並不能繞過登入和資料庫權限讀取私人筆記。
+
+重要事項：
+  ・公開頁只有指定筆記的內容快照及來源資訊，沒有私人書架入口。
+  ・分享者無法控制收件人再轉傳、截圖、用開發者工具擷取公開內容。
+  ・右鍵、左鍵選字限制只套用在公開閱讀頁的卡片，不影響私人《頁間》。
+  ・公開內容若是書籍／文章的節錄，註明作者與權利聲明不等於取得轉載授權。
+  ・若未執行 SQL，會遇到 share_status / share_publish 函式不存在等錯誤。

@@ -262,3 +262,16 @@ input::placeholder, textarea::placeholder {color: #afb6ad;}
   .note-link-panel input {font-size: 16px;}
   .note-link-actions button {min-height: 42px;}
 }
+
+/* v5｜私人工作區的單篇分享控制。公開頁使用獨立 share.css。 */
+.share-dialog {width:min(510px, 94vw);}
+.share-dialog label {display:block; margin:15px 0 7px; font-size:12px; font-weight:700;}
+.share-note-label {font-size:14px; font-weight:700; color:var(--green); overflow-wrap:anywhere;}
+.share-description {font-size:12px; color:#6a8074; line-height:1.85; margin:11px 0;}
+.share-status {border-radius:8px; background:#f1f6f0; padding:11px 13px; font-size:12px; color:#375d49;}
+#share-url {width:100%; font-size:13px; padding:11px; border:1px solid #d3dfd5; border-radius:8px; color:var(--ink); background:#fff;}
+.share-tools {display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
+.share-open-link {display:inline-flex; align-items:center; text-decoration:none;}
+.share-bottom {justify-content:space-between; gap:10px;}
+.share-note-btn {color:#3d7456 !important; font-weight:700;}
+@media(max-width:650px){#share-url {font-size:16px;} .share-tools button, .share-bottom button {min-height:42px;}}

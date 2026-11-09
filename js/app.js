@@ -15,7 +15,7 @@
   const state = {
     user: null, books: [], notes: [], selectedBookId: null,
     bookEditId: null, noteEditId: null, authMode: 'login',
-    saving: false, loadingId: 0, recoveryMode: false, expandedBookId: undefined
+    saving: false, loadingId: 0, recoveryMode: false, expandedBookId: undefined, shareNoteId: null, shareToken: null
   };
   let client = null;
   let toastTimer = null;
@@ -627,6 +627,13 @@
       edit.type = 'button';
       edit.setAttribute('aria-label', `編輯筆記 ${note.chapter || (note.page_number ? '第 ' + note.page_number + ' 頁' : '')}`);
       edit.addEventListener('click', () => openNoteDialog(note));
+      if (mode === 'cloud') {
+        const share = el('button', 'share-note-btn', '分享');
+        share.type = 'button';
+        share.setAttribute('aria-label', `分享筆記 ${noteIndexLabel(note)}`);
+        share.addEventListener('click', () => void openShareDialog(note));
+        foot.append(share);
+      }
       const del = el('button', 'delete-note', '刪除');
       del.type = 'button';
       del.setAttribute('aria-label', `刪除筆記 ${note.chapter || (note.page_number ? '第 ' + note.page_number + ' 頁' : '')}`);
@@ -634,6 +641,98 @@
       foot.append(edit, del);
       card.append(top, content, foot);
       container.append(card);
+    }
+  }
+  function shareUrl(token) {
+    const url = new URL('./share.html', window.location.href);
+    url.searchParams.set('token', token);
+    return url.href;
+  }
+  function setShareBusy(busy) {
+    ['share-publish-btn', 'share-revoke-btn', 'share-copy-btn'].forEach((id) => {
+      $(id).disabled = busy || (id !== 'share-publish-btn' && !state.shareToken);
+    });
+  }
+  function renderShareState() {
+    const token = state.shareToken;
+    const url = token ? shareUrl(token) : '';
+    $('share-url').value = url;
+    $('share-status').textContent = token ? '目前已公開：持有這個連結的人可閱讀這一則。' : '目前是私人筆記，尚未建立分享連結。';
+    $('share-publish-btn').textContent = token ? '更新分享內容' : '建立分享連結';
+    $('share-open-link').classList.toggle('hidden', !token);
+    if (token) $('share-open-link').href = url;
+    else $('share-open-link').removeAttribute('href');
+    setShareBusy(false);
+  }
+  async function openShareDialog(note) {
+    if (mode !== 'cloud' || !client || !state.user) return;
+    const book = state.books.find((b) => b.id === note.book_id);
+    state.shareNoteId = note.id;
+    state.shareToken = null;
+    $('share-note-label').textContent = `${book ? '《' + book.title + '》｜' : ''}${noteIndexLabel(note)}`;
+    $('share-status').textContent = '正在確認分享狀態…';
+    $('share-url').value = '';
+    $('share-publish-btn').disabled = true;
+    $('share-copy-btn').disabled = true;
+    $('share-revoke-btn').disabled = true;
+    $('share-open-link').classList.add('hidden');
+    openDialog('share-dialog');
+    try {
+      const {data, error} = await client.rpc('share_status', {p_note_id: note.id});
+      if (error) throw error;
+      if (state.shareNoteId !== note.id || !$('share-dialog').open) return;
+      state.shareToken = data || null;
+      renderShareState();
+    } catch (err) {
+      if (state.shareNoteId !== note.id || !$('share-dialog').open) return;
+      $('share-status').textContent = '無法取得分享狀態，請確認已執行 share_v5.sql。';
+      toast('查詢分享狀態失敗：' + friendlyError(err), true);
+      $('share-publish-btn').disabled = true;
+    }
+  }
+  async function publishShare() {
+    const noteId = state.shareNoteId;
+    if (!noteId || !client || !state.user) return;
+    setShareBusy(true);
+    try {
+      const {data, error} = await client.rpc('share_publish', {p_note_id: noteId});
+      if (error) throw error;
+      if (state.shareNoteId !== noteId) return;
+      state.shareToken = data;
+      renderShareState();
+      toast('單篇筆記已公開。現在可以複製分享連結。');
+    } catch (err) {
+      toast('建立分享失敗：' + friendlyError(err), true);
+      setShareBusy(false);
+    }
+  }
+  async function revokeShare() {
+    const noteId = state.shareNoteId;
+    if (!noteId || !state.shareToken || !client) return;
+    if (!window.confirm('確定取消這一則筆記的公開分享嗎？原本的連結會立即失效。')) return;
+    setShareBusy(true);
+    try {
+      const {error} = await client.rpc('share_revoke', {p_note_id: noteId});
+      if (error) throw error;
+      if (state.shareNoteId !== noteId) return;
+      state.shareToken = null;
+      renderShareState();
+      toast('已取消分享，原連結不再能讀取這則筆記。');
+    } catch (err) {
+      toast('取消分享失敗：' + friendlyError(err), true);
+      setShareBusy(false);
+    }
+  }
+  async function copyShareUrl() {
+    const value = $('share-url').value;
+    if (!value) return;
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('no clipboard');
+      await navigator.clipboard.writeText(value);
+      toast('已複製單篇閱讀連結。');
+    } catch {
+      $('share-url').focus(); $('share-url').select();
+      toast('已選取網址，請使用 Ctrl / ⌘ + C 複製。');
     }
   }
   function openDialog(id) {
@@ -910,6 +1009,10 @@
       if (event.key === 'Enter') {event.preventDefault(); saveLinkFromPanel();}
       if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); closeLinkPanel({focusEditor:true});}
     }));
+    $('share-publish-btn').addEventListener('click', () => void publishShare());
+    $('share-revoke-btn').addEventListener('click', () => void revokeShare());
+    $('share-copy-btn').addEventListener('click', () => void copyShareUrl());
+    $('share-dialog').addEventListener('close', () => {state.shareNoteId = null; state.shareToken = null;});
     $('password-form').addEventListener('submit', changePassword);
     $('book-search').addEventListener('input', renderBooks);
     $('note-search').addEventListener('input', renderNotes);
@@ -918,7 +1021,7 @@
     document.querySelectorAll('[data-close]').forEach((btn) => btn.addEventListener('click', () => {
       if (!state.saving) $(btn.dataset.close).close();
     }));
-    ['book-dialog', 'note-dialog'].forEach((id) => $(id).addEventListener('cancel', (event) => {
+    ['book-dialog', 'note-dialog', 'share-dialog'].forEach((id) => $(id).addEventListener('cancel', (event) => {
       if (state.saving) event.preventDefault();
     }));
     document.addEventListener('visibilitychange', () => {

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="theme-color" content="#f7f4ed">
+  <meta name="description" content="一則公開分享的閱讀摘記。">
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./css/share.css?v=5-20261109">
+  <title>閱讀摘記｜公開單篇</title>
+</head>
+<body>
+  <div class="frame">
+    <header class="page-head">
+      <div class="name"><span class="mark" aria-hidden="true"><i></i><i></i></span><span>閱讀摘記</span></div>
+      <span class="readonly">公開單篇 · 唯讀</span>
+    </header>
+    <main>
+      <section id="loading" class="sheet message-card" role="status">正在載入公開閱讀內容…</section>
+      <article id="reading" class="sheet" hidden aria-label="公開的單篇閱讀筆記">
+        <p class="eyebrow">A SHARED READING NOTE</p>
+        <p id="book-title" class="book"></p>
+        <h1 id="note-title"></h1>
+        <p id="book-author" class="book-author"></p>
+        <div id="metadata" class="meta"></div>
+        <div class="fine-line"></div>
+        <div id="note-content" class="note"></div>
+        <div class="bottom"><span>這是一則由分享者選定的閱讀摘記</span><span>僅供閱讀 · 不開放編輯</span></div>
+        <p class="copyright-note">本頁引用文字之著作權及相關權利均屬原作者或合法權利人所有；本筆記僅作為個人閱讀紀錄與資料整理之用。</p>
+      </article>
+      <section id="unavailable" class="sheet message-card" hidden role="status">
+        <div class="revoke-icon" aria-hidden="true">⌁</div>
+        <p class="eyebrow">LINK UNAVAILABLE</p>
+        <h1>這則筆記目前無法閱讀</h1>
+        <p id="unavailable-explainer">分享者可能已取消公開，或連結已失效。請向分享者確認是否有新的連結。</p>
+      </section>
+      <p class="privacy-note">這是一則獨立閱讀摘記，不提供書架或其他私人筆記入口。</p>
+    </main>
+  </div>
+  <footer>閱讀摘記 · 唯讀分享</footer>
+  <div id="context-toast" class="toast" role="status" aria-live="polite">公開摘錄僅供閱讀，右鍵選單已停用</div>
+  <script src="./js/config.js?v=5-20261109"></script>
+  <script src="./js/share.js?v=5-20261109" defer></script>
+</body>
+</html>

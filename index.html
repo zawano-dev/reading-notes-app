@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f7f4ed">
   <meta name="description" content="頁間：依書名、章節與頁數整理閱讀筆記，支援手機及電腦使用。">
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./css/style.css?v=4-20261109">
+  <link rel="stylesheet" href="./css/style.css?v=5-20261109">
   <title>頁間｜我的閱讀筆記</title>
 </head>
 <body>
@@ -152,6 +152,25 @@
     </form>
   </dialog>
 
+  <dialog id="share-dialog" class="app-dialog share-dialog" aria-labelledby="share-dialog-title">
+    <div class="modal-form">
+      <div class="dialog-heading"><div><p class="eyebrow">SHARE ONE NOTE</p><h2 id="share-dialog-title">分享單篇筆記</h2></div><button type="button" class="close-btn" data-close="share-dialog" aria-label="關閉">×</button></div>
+      <p id="share-note-label" class="share-note-label"></p>
+      <p class="share-description">只公開這一則筆記的內容快照；其他書籍和筆記依然私人。之後如果修改原筆記，公開頁不會自動更新，需再按「更新分享內容」。</p>
+      <p id="share-status" class="share-status" aria-live="polite">正在確認分享狀態…</p>
+      <label for="share-url">公開閱讀頁連結</label>
+      <input id="share-url" type="text" readonly placeholder="建立分享後會顯示連結" aria-label="單篇分享連結">
+      <div class="share-tools">
+        <button type="button" id="share-copy-btn" class="secondary-btn" disabled>複製連結</button>
+        <a id="share-open-link" class="secondary-btn share-open-link hidden" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">預覽公開頁</a>
+      </div>
+      <div class="dialog-bottom share-bottom">
+        <button type="button" id="share-revoke-btn" class="secondary-btn danger-text" disabled>取消分享</button>
+        <button type="button" id="share-publish-btn" class="primary-btn">建立分享連結</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="password-dialog" class="app-dialog" aria-labelledby="password-dialog-title">
     <form id="password-form" class="modal-form">
       <div class="dialog-heading"><div><p class="eyebrow">ACCOUNT SECURITY</p><h2 id="password-dialog-title">設定新密碼</h2></div></div>
@@ -163,7 +182,7 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="./js/config.js?v=4-20261109"></script>
-  <script src="./js/app.js?v=4-20261109" defer></script>
+  <script src="./js/config.js?v=5-20261109"></script>
+  <script src="./js/app.js?v=5-20261109" defer></script>
 </body>
 </html>
